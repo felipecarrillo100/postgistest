@@ -6,7 +6,7 @@ const TableName = "poi";
 
 const sqlCreateTable =
     `CREATE TABLE IF NOT EXISTS ${TableName} (` +
-    "   id SERIAL PRIMARY KEY," +
+    "   id BIGSERIAL PRIMARY KEY," +
     "   name VARCHAR(128) NOT NULL ," +
     "   description VARCHAR(1024) ," +
     "   population integer ," +
@@ -20,11 +20,14 @@ const SelectedColumns = "id, name, description, population, ST_AsGeoJSON(geom) a
 const sqlInsert = `INSERT INTO ${TableName} ("name", "description", "population", "geom") VALUES($1, $2, $3, ST_GeomFromGeoJSON($4)) returning *;`
 const sqlSelectByID = `SELECT ${SelectedColumns} FROM ${TableName} WHERE id=$1;`
 const sqlDeleteByID = `DELETE FROM ${TableName} WHERE id=$1;`
-const sqlSelectByText = `SELECT ${SelectedColumns} FROM ${TableName} WHERE "name" LIKE $1 OR "description" LIKE $1`
+const sqlDeleteAll = `DELETE FROM ${TableName};`
+const sqlSelectByText = `SELECT ${SelectedColumns} FROM ${TableName} WHERE "name" LIKE $1 OR "description" LIKE $1 LIMIT $2`
 const sqlSelectByGeometry = `SELECT ${SelectedColumns} FROM ${TableName} WHERE geom && ST_MakeEnvelope($2, $3, $4, $5, 4326) AND ("name" LIKE $1 OR "description" LIKE $1) limit $6`
 
-const sqlUpdatebyID = `UPDATE ${TableName} SET name=$2, description=$3, population=$4, geom=ST_GeomFromGeoJSON($5) WHERE id=$1`;
 
+const sqlPatchByID = `UPDATE ${TableName} SET name=$2, description=$3, population=$4, geom=ST_GeomFromGeoJSON($5) WHERE id=$1`;
+const sqlUpdateOrInsert = `INSERT INTO ${TableName} (id, name, description, population, geom) values ($1, $2, $3, $4, ST_GeomFromGeoJSON($5))` +
+    ` ON CONFLICT ("id") DO ` + `UPDATE SET name=$2, description=$3, population=$4, geom=ST_GeomFromGeoJSON($5)`;
 
 class CitiesRepository {
     private db: Client;
@@ -50,12 +53,15 @@ class CitiesRepository {
 
     public add(pointsOfInterest: Cities) {
         return new Promise<number>((resolve, reject)=>{
-            const entry = this.db.query(sqlInsert, [pointsOfInterest.getName(), pointsOfInterest.getDescription(),
-                pointsOfInterest.getPopulation(), pointsOfInterest.getGeometry()])
+            const entry = this.db.query(sqlInsert, [
+                pointsOfInterest.getName(), pointsOfInterest.getDescription(),
+                pointsOfInterest.getPopulation(), pointsOfInterest.getGeometry()
+            ])
             entry.then((result)=>{
-                resolve(result.rows[0].id);
+                resolve(Number(result.rows[0].id));
             },(err)=>{
                 console.error(err);
+                reject(500)
             });
         })
     }
@@ -73,11 +79,11 @@ class CitiesRepository {
                     pointsOfInterest.setGeometry(row.geometry);
                     resolve(pointsOfInterest);
                 } else {
-                    reject(400);
+                    reject(404);
                 }
                 },(err)=>{
-                reject(500);
-            });
+                    reject(500);
+                });
         })
     }
 
@@ -91,10 +97,21 @@ class CitiesRepository {
         })
     }
 
-    public queryLike(search?: string) {
+    public deleteAll() {
+        return new Promise<boolean>((resolve, reject)=> {
+            this.db.query(sqlDeleteAll, []).then(()=>{
+                resolve(true);
+            },(err)=>{
+                reject(500);
+            });
+        })
+    }
+
+    public queryLike(options: {search?: string; limit?: number}) {
         return new Promise<Cities[]>((resolve, reject)=> {
-            const searchText = search ? `%${search}%` : "%%";
-            this.db.query(sqlSelectByText, [searchText]).then((result)=>{
+            const searchText = options.search ? `%${options.search}%` : "%%";
+            const limit = typeof options.limit !== "undefined" ? options.limit : 100000;
+            this.db.query(sqlSelectByText, [searchText, limit]).then((result)=>{
                 const pointsOfInterests = result.rows.map(row => {
                     const pointsOfInterest = new Cities();
                     pointsOfInterest.setId(row.id);
@@ -113,11 +130,11 @@ class CitiesRepository {
         })
     }
 
-    public querySpatial(options: {search: string; bbox: number[], limit: number}) {
+    public querySpatial(options: {search: string; bbox: number[], limit?: number}) {
         return new Promise<Cities[]>((resolve, reject)=> {
             const searchText = options.search ? `%${options.search}%` : "%%";
             const bbox  =  options.bbox;
-            const limit = options.limit;
+            const limit = typeof options.limit !== "undefined" ? options.limit : 100000;
             this.db.query(sqlSelectByGeometry, [searchText, bbox[0], bbox[1], bbox[2], bbox[3], limit]).then((result)=>{
                 const pointsOfInterests = result.rows.map(row => {
                     const pointsOfInterest = new Cities();
@@ -140,7 +157,7 @@ class CitiesRepository {
     public replace(pointsOfInterest: Cities) {
         return new Promise<number|string>((resolve, reject)=>{
             if (pointsOfInterest.getId()) {
-                this.db.query(sqlUpdatebyID, [pointsOfInterest.getId(), pointsOfInterest.getName(),
+                this.db.query(sqlPatchByID, [pointsOfInterest.getId(), pointsOfInterest.getName(),
                     pointsOfInterest.getDescription(), pointsOfInterest.getPopulation(), pointsOfInterest.getGeometry()]).then(
                     (result) => {
                         console.log(result);
@@ -151,8 +168,7 @@ class CitiesRepository {
                         }
                     },
                     (err) => {
-                        console.error(500);
-                        reject();
+                        reject(500);
                     }
                 )
             }
@@ -168,7 +184,7 @@ class CitiesRepository {
                     if (pointsOfInterest.getDescription()) oldPointsOfInterest.setDescription(pointsOfInterest.getDescription() as string);
                     if (typeof pointsOfInterest.getPopulation() !== "undefined") oldPointsOfInterest.setPopulation(pointsOfInterest.getPopulation() as number);
                     if (pointsOfInterest.getGeometry()) oldPointsOfInterest.setGeometry(pointsOfInterest.getGeometry() as string);
-                    this.db.query(sqlUpdatebyID, [oldPointsOfInterest.getId(), oldPointsOfInterest.getName(),
+                    this.db.query(sqlPatchByID, [oldPointsOfInterest.getId(), oldPointsOfInterest.getName(),
                         oldPointsOfInterest.getDescription(), oldPointsOfInterest.getPopulation(), oldPointsOfInterest.getGeometry()]).then(
                         (result) => {
                             if (result.rowCount > 0) {

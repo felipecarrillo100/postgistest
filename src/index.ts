@@ -7,7 +7,7 @@ dotenv.config();
 const router = express.Router();
 const databaseObject = new DatabaseObject();
 
-databaseObject.connect().then((a)=>{
+databaseObject.connect().then(()=>{
     console.log(`Connected to database '${process.env.PGDATABASE}' as user '${process.env.PGUSER}'` );
     const port = 3000
 

@@ -27,7 +27,7 @@ class Cities {
 
 
     setId(id: number) {
-        this.id = id;
+        this.id = Number(id);
     }
 
     getId() {

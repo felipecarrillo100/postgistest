@@ -12,6 +12,24 @@ class CitiesController {
         this.pointOfInterestRepository = new CitiesRepository(databaseObject);
     }
 
+    static POISAsCollection = (pois: Cities[])=>(
+        {
+        type: "FeatureCollection",
+        features :pois.map(poi=>CitiesController.PoiAsFeature(poi))
+    })
+
+    static PoiAsFeature = (poi: Cities) => (
+        {
+            id: poi.getId(),
+            type: "Feature",
+            properties: {
+                name: poi.getName(),
+                description: poi.getDescription(),
+                population: poi.getPopulation()
+            },
+            geometry: JSON.parse(poi.getGeometry() as string)
+        })
+
     addRoutes(app: Router) {
 
         app.post("/cities", ((req, res) => {
@@ -31,23 +49,11 @@ class CitiesController {
 
         app.get("/cities", ((req, res) => {
             let search = req.query.search ? req.query.search as string : "";
-            this.pointOfInterestRepository.queryLike(search).then((pois) => {
+            let limit = typeof req.query.limit !== "undefined" ? Number(req.query.limit) : undefined;
+            this.pointOfInterestRepository.queryLike({search, limit}).then((pois) => {
                 let format = req.query.f;
                 if (format==="geojson") {
-                    res.json({
-                        type: "FeatureCollection",
-                        features :pois.map(poi=>(
-                        {
-                            id: poi.getId(),
-                            type: "Feature",
-                            properties: {
-                                name: poi.getName(),
-                                description: poi.getDescription(),
-                                population: poi.getPopulation()
-                            },
-                            geometry: JSON.parse(poi.getGeometry() as string)
-                        }
-                    ))})
+                    res.json(CitiesController.POISAsCollection(pois));
                 } else {
                     res.json(pois);
                 }
@@ -61,25 +67,12 @@ class CitiesController {
 
         app.get("/citiesSpatial", ((req, res) => {
             let search = req.query.search ? req.query.search as string : "";
-            let limit = req.query.limit ? Number(req.query.limit) : 100000;
+            let limit = typeof req.query.limit !== "undefined" ? Number(req.query.limit) : undefined;
             let bbox = req.query.bbox ? (req.query.bbox as string).split(",").map(s=>Number(s)) : [-180, -90, 180, 90];
             this.pointOfInterestRepository.querySpatial({search, bbox, limit}).then((pois) => {
                 let format = req.query.f;
                 if (format==="geojson") {
-                    res.json({
-                        type: "FeatureCollection",
-                        features :pois.map(poi=>(
-                            {
-                                id: poi.getId(),
-                                type: "Feature",
-                                properties: {
-                                    name: poi.getName(),
-                                    description: poi.getDescription(),
-                                    population: poi.getPopulation()
-                                },
-                                geometry: JSON.parse(poi.getGeometry() as string)
-                            }
-                        ))})
+                    res.json(CitiesController.POISAsCollection(pois));
                 } else {
                     res.json(pois);
                 }
@@ -94,16 +87,7 @@ class CitiesController {
             this.pointOfInterestRepository.get(id).then((poi) => {
                 let format = req.query.f;
                 if (format==="geojson") {
-                    const feature = {
-                        id: poi.getId(),
-                        type: "Feature",
-                        properties: {
-                            name: poi.getName(),
-                            description: poi.getDescription(),
-                            population: poi.getPopulation()
-                        },
-                        geometry: JSON.parse(poi.getGeometry() as string)
-                    }
+                    const feature = CitiesController.PoiAsFeature(poi)
                     res.json(feature)
                 } else {
                     res.json(poi)
@@ -117,6 +101,16 @@ class CitiesController {
         app.delete("/cities/:id", ((req, res) => {
             const id = Number(req.params.id);
             this.pointOfInterestRepository.delete(id).then((success) => {
+                res.status(200);
+                res.json(success)
+            }, (code: number)=>{
+                res.status(code);
+                res.json({error: code})
+            })
+        }))
+
+        app.delete("/citiesClear", ((req, res) => {
+            this.pointOfInterestRepository.deleteAll().then((success) => {
                 res.status(200);
                 res.json(success)
             }, (code: number)=>{

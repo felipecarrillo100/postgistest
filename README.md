@@ -51,13 +51,19 @@ Points are added, updated, patched or deleted using the API.  You can also searc
 ```
 
 ## Prerequisites
-The sample creates the table automatically but it expects that the database already exists.
-For this you need to create the table in advance as follows.
+The sample creates the table automatically, but it expects that the database already exists.
+For this, you need to create the database in advance as follows.
 
 * Install POSTGRES with POSTGIS
 * Create a user named wkuser with password wkpassword
-* Create a database called 'wkdatabase' and make user 'wkuser' the owner of the database
-* Run the postgis extension on your database 'wkdatabase' 
+* Create a database called 'wkdatabase' and make user 'wkuser' the owner of this database
+* Run the postgis extensions on your database 'wkdatabase' 
+
+For this last step, use these commands
+```sql
+ CREATE EXTENSION postgis;
+ CREATE EXTENSION postgis_topology;
+```
 
 
 # Testing

@@ -6,9 +6,9 @@ This sample shows how to create a REST API to store features in a POSTGRES/POSTG
 
 ### Approach
 The features are stored in a database table called poi. Each feature is a row in the table.
-The row contains multiple columns whe one column in particular named geom contains the geometry.
+The row contains multiple columns where one column in particular contains the geometry.
 
-This example was designed to store 2D Point geometries in EPSG:4326 and for this it defines  geom as
+This example was designed to store 2D Point geometries in EPSG:4326 and for this it defines the geometry column as
 "geom geometry(Point,4326)". To increase the speed on geospatial queries a geospatial index is created for geom.
 
 This is the definition used for the table.
@@ -55,7 +55,7 @@ The sample creates the table automatically, but it expects that the database alr
 For this, you need to create the database in advance as follows.
 
 * Install POSTGRES with POSTGIS
-* Create a user named wkuser with password wkpassword
+* Create a user named 'wkuser' with password 'wkpassword'
 * Create a database called 'wkdatabase' and make user 'wkuser' the owner of this database
 * Run the postgis extensions on your database 'wkdatabase' 
 
@@ -64,7 +64,7 @@ For this last step, use these commands
  CREATE EXTENSION postgis;
  CREATE EXTENSION postgis_topology;
 ```
-
+If the postgis extension is successfully installed, a table called 'spatial_ref_sys' will be created in the 'wkdatabase' containing geospatial reference systems
 
 # Testing
 

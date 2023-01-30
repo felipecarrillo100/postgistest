@@ -1,4 +1,4 @@
-import {DatabaseObject} from "../DatabaseObject";
+import {PostgresDatabase} from "../PostgresDatabase";
 import {Cities} from "./Cities";
 import {Client} from "pg";
 
@@ -32,8 +32,8 @@ const sqlUpdateOrInsert = `INSERT INTO ${TableName} (id, name, description, popu
 class CitiesRepository {
     private db: Client;
 
-    constructor(databaseObject:DatabaseObject) {
-        this.db = databaseObject.db;
+    constructor(databaseObject:PostgresDatabase) {
+        this.db = databaseObject.dbClient;
         this.init();
     }
 

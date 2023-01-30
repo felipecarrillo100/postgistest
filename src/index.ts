@@ -1,11 +1,11 @@
 import express  from 'express'
 import dotenv  from "dotenv"
-import {DatabaseObject} from "./database/DatabaseObject";
+import {PostgresDatabase} from "./database/PostgresDatabase";
 import {CitiesController} from "./database/Cities/CitiesController";
 dotenv.config();
 
 const router = express.Router();
-const databaseObject = new DatabaseObject();
+const databaseObject = new PostgresDatabase();
 
 databaseObject.connect().then(()=>{
     console.log(`Connected to database '${process.env.PGDATABASE}' as user '${process.env.PGUSER}'` );

@@ -1,14 +1,14 @@
 
 import {Express, Router} from "express";
 import {CitiesRepository} from "./CitiesRepository";
-import {DatabaseObject} from "../DatabaseObject";
+import {PostgresDatabase} from "../PostgresDatabase";
 import {Cities} from "./Cities";
 
 
 class CitiesController {
     private pointOfInterestRepository: CitiesRepository;
 
-    constructor(databaseObject: DatabaseObject) {
+    constructor(databaseObject: PostgresDatabase) {
         this.pointOfInterestRepository = new CitiesRepository(databaseObject);
     }
 

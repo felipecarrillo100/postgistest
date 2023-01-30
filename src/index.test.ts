@@ -30,7 +30,7 @@ async function AddOne(city:{id: number, name:string; description: string; popula
 describe('Testing a simple postgis api ',   () => {
 
     let clearAll = baseURL+ "/citiesClear";
-    it("Test DELETE All " + clearAll, async () => {
+    it("Test DELETE All elements " + clearAll, async () => {
         req5 = baseURL+ "/cities/"+ ToDelete;
         const response = await fetch(clearAll, {
             method: 'DELETE',
@@ -48,7 +48,7 @@ describe('Testing a simple postgis api ',   () => {
         }
     })
 
-    it("Add 100 ", async () => {
+    it("Add 100 elements", async () => {
         let rawdata = fs.readFileSync('testdata.json');
         let cities = JSON.parse(rawdata as any);
         const all = [];
@@ -226,13 +226,13 @@ describe('Testing a simple postgis api ',   () => {
 
 
 
-    const req6 = baseURL+ "/citiesSpatial?bbox=6.79153612058438,50.84849753245391,7.101213233061616,51.04749504632292";
+    const req6 = baseURL+ "/citiesSpatial?bbox=11.403882613956075,48.05050852663266,11.689117085660317,48.21482137789209";
     it("Test Bounding box GET " + req6, async () => {
         const response = await fetch(req6);
         if (response.status===200) {
             const json = await response.json();
             if(json) {
-                expect(json.length).toBe(0);
+                expect(json.length).toBe(2);
             } else {
                 expect(false).toBe(true);
             }
@@ -241,14 +241,14 @@ describe('Testing a simple postgis api ',   () => {
         }
     })
 
-    const req7 = baseURL+ "/citiesSpatial?bbox=6.79153612058438,50.84849753245391,7.101213233061616,51.04749504632292&f=geojson";
+    const req7 = baseURL+ "/citiesSpatial?bbox=11.403882613956075,48.05050852663266,11.689117085660317,48.21482137789209&f=geojson";
     it("Test GeoJSON format GET " + req7, async () => {
         const response = await fetch(req7);
         if (response.status===200) {
             const json = await response.json();
             if(json) {
                 expect(json.type).toBe("FeatureCollection");
-                expect(json.features.length).toBe(0);
+                expect(json.features.length).toBe(2);
             } else {
                 expect(false).toBe(true);
             }
